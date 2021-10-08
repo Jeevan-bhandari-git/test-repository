@@ -1,33 +1,23 @@
-from flask import Flask
-from flask_restful import Api
-from flask_jwt import JWT
+import os
+from flask import Flask , render_template, request, jsonify
+from flask_cors import CORS
+from chatgui import get_response
 
-from security import authenticate, identity  # /auth
-from resources.user import UserRegister
-from resources.item import Item, ItemList
-from resources.store import Store, StoreList
+app = Flask(__name__)
+CORS(app)
 
-app =  Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///data.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['PROPAGATE_EXCEPTIONS'] = True
-app.secret_key = 'james'		# referred this into security.py / user.py
-api = Api(app)
+@app.get("/")
+def index_get():
+    return render_template("base.html")
 
-@app.before_first_request
-def create_tables():
-	db.create_all()
+@app.post("/predict")
+def predict():
+    text = request.get_json().get("message")
+    #response = get_response(text)
+    response,urls,imgs = get_response(text)
+    message = {"answer": response, "urls": urls, "image": imgs}
+    return jsonify(message)
 
-jwt = JWT(app, authenticate, identity)	# initialized JWT objects.
 
-api.add_resource(Store, '/store/<string:name>')
-api.add_resource(Item, '/item/<string:name>')   # http://127.0.0.1:5000/student/Rolf
-api.add_resource(ItemList, '/items')  # for ItemList with route path
-api.add_resource(StoreList, '/stores')
-
-api.add_resource(UserRegister, '/register')
-
-if __name__=='__main__':
-	from db import db
-	db.init_app(app)
-	app.run(port=5000, debug=True)
+if __name__ == "__main__":
+    app.run(debug=True)
